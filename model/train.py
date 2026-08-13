@@ -29,7 +29,7 @@ def train() -> None:
     print(df["label"].value_counts().to_string())
 
     X = df[FEATURE_NAMES].values
-    y = df["label"].values
+    y = df["label"].to_numpy(dtype=object)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, random_state=42, stratify=y
