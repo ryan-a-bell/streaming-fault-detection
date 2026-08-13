@@ -68,9 +68,38 @@ The fault physics live in one place — [`injector/fault_definitions.py`](inject
 and are reused by both the live simulator and the offline training-data
 generator, so **the model trains on the same process it later sees in production.**
 
-## Quickstart
+## Run the whole demo with one command
 
 Requires Docker (for Kafka) and Python 3.10+.
+
+```bash
+pip install -r requirements.txt
+./run_demo.sh          # or:  make demo
+```
+
+`run_demo.sh` does everything: starts Kafka, trains the model if it's missing,
+launches the three producers + the ML consumer + the Streamlit dashboard (a
+browser tab opens at http://localhost:8501), then plays a **scripted fault
+scenario** on a loop — pressure leak → temp bias → vibration spike → sensor
+dropout → stuck sensor → combined fault, each with a recovery in between. Watch
+the dashboard's *Predicted state* track each fault and the metrics fill in.
+Press **Ctrl+C** to tear everything down.
+
+Each step narrates itself in the terminal so you know what to look for:
+
+```
+=== INJECT PRESSURE_LEAK ===
+    watch: Pressure ramps downward; model should latch PRESSURE_LEAK within a few seconds.
+```
+
+Knobs: `KEEP_KAFKA=1 ./run_demo.sh` leaves the broker up between runs;
+`HOLD_SCALE=2 ./run_demo.sh` slows the scenario down (or `0.5` to speed it up).
+Drive it by hand instead with `python -m scripts.scenario --loop`, or inject
+one-off faults with `python -m injector.inject` (see below).
+
+## Quickstart (manual, step by step)
+
+The same thing `run_demo.sh` automates, if you'd rather run each piece yourself:
 
 ```bash
 pip install -r requirements.txt
@@ -148,6 +177,7 @@ injected ground truth as you drive the system.
 ## Layout
 
 ```
+run_demo.sh / Makefile    One-command demo orchestration
 docker-compose.yml        Single-node Kafka (KRaft)
 shared/                   config, topic names, message schemas (one source of truth)
 producers/                sensor_a/b/c, the process simulator, fault-state listener
@@ -155,6 +185,7 @@ injector/                 inject.py CLI + fault_definitions.py (fault physics)
 streaming/                state_store, feature_builder, ml_consumer
 model/                    generate_training_data, train, evaluate
 dashboard/                Streamlit live dashboard
+scripts/                  scenario.py — scripted fault timeline for the demo
 notebooks/                fault_classification.ipynb (offline exploration)
 ```
 
